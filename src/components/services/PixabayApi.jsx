@@ -1,7 +1,7 @@
 import axios from 'axios';
 import PropTypes from 'prop-types';
 
-export const getImages = async ({ query, page }) => {
+export const getImages = async (query, page) => {
   const response = await axios({
     method: 'GET',
     url: 'https://pixabay.com/api/',

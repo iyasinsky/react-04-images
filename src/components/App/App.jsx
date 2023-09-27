@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -12,81 +12,64 @@ import { getImages } from '../services/PixabayApi';
 import { Loader } from '../Loader/Loader';
 import { ImageModal } from '../Modal/ImageModal';
 
-export class App extends Component {
-  state = {
-    query: '',
-    photos: [],
-    page: 1,
-    loader: false,
-    total: 0,
-    selectedImg: null,
-  };
+export const App = () => {
+  const [query, setQuery] = useState('');
+  const [photos, setPhotos] = useState([]);
+  const [page, setPage] = useState(1);
+  const [loader, setLoader] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [selectedImg, setSelectedImg] = useState(null);
 
-  async componentDidUpdate() {
-    try {
-      if (this.state.loader) {
-        const { hits, totalHits } = await getImages(this.state);
+  useEffect(() => {
+    if (!loader) return;
+
+    (async () => {
+      try {
+        const { hits, totalHits } = await getImages(query, page);
 
         if (hits.length) {
-          this.setState(({ photos }) => ({
-            photos: [...photos, ...hits],
-            loader: false,
-            total: totalHits,
-          }));
+          setPhotos(prev => [...prev, ...hits]);
+          setTotal(totalHits);
+          setLoader(false);
           return;
         }
 
-        this.setState({ loader: false });
-        notify(`No images found for ${this.state.query}`);
+        setLoader(false);
+        notify(`No images found for ${query}`);
+      } catch (error) {
+        setLoader(false);
+        notify(`${error.message}`);
       }
-    } catch (error) {
-      this.setState({ loader: false });
-      notify(`${error.message}`);
-    }
-  }
+    })();
+  }, [loader, page, query]);
 
-  onFormSubmit = ({ query }) => {
-    this.setState({
-      query,
-      page: 1,
-      photos: [],
-      loader: true,
-    });
+  const onFormSubmit = ({ query }) => {
+    setQuery(query);
+    setPage(1);
+    setPhotos([]);
+    setLoader(true);
   };
 
-  loadMore = () => {
-    this.setState(({ page }) => ({
-      page: page + 1,
-      loader: true,
-    }));
+  const loadMore = () => {
+    setPage(prev => prev + 1);
+    setLoader(true);
   };
 
-  setSelectedImg = selectedImg => {
-    this.setState({ selectedImg });
-  };
+  const isShown = photos.length > 0 && photos.length < total && !loader;
 
-  closeModal = () => {
-    this.setState({ selectedImg: null });
-  };
-
-  render() {
-    const { photos, loader, total, selectedImg } = this.state;
-    const isShown = photos.length > 0 && photos.length < total && !loader;
-
-    return (
-      <Wrapper>
-        <Searchbar onFormSubmit={this.onFormSubmit} />
-        <ImageGallery photos={photos} onClick={this.setSelectedImg} />
-        {loader && <Loader />}
-        {isShown && <Button onClick={this.loadMore} />}
-        <ImageModal
-          isOpen={selectedImg !== null}
-          onClose={this.closeModal}
-          selectedImg={selectedImg}
-        />
-        <ToastContainer />
-        <GlobalStyle />
-      </Wrapper>
-    );
-  }
-}
+  return (
+    <Wrapper>
+      <Searchbar onFormSubmit={onFormSubmit} />
+      <ImageGallery photos={photos} onClick={setSelectedImg} />
+      {loader && <Loader />}
+      {isShown && <Button onClick={loadMore} />}
+      <ImageModal
+        isOpen={selectedImg !== null}
+        onClose={() => setSelectedImg(null)}
+        selectedImg={selectedImg}
+      />
+      <ToastContainer />
+      <GlobalStyle />
+    </Wrapper>
+  );
+};
