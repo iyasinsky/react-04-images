@@ -27,32 +27,28 @@ export const App = () => {
       try {
         const { hits, totalHits } = await getImages(query, page);
 
-        if (hits.length) {
-          setPhotos(prev => [...prev, ...hits]);
-          setTotal(totalHits);
-          setLoader(false);
-          return;
-        }
+        !hits.length && notify(`No images found for ${query}`);
 
-        setLoader(false);
-        notify(`No images found for ${query}`);
+        setPhotos(prev => [...prev, ...hits]);
+        setTotal(totalHits);
       } catch (error) {
-        setLoader(false);
         notify(`${error.message}`);
+      } finally {
+        setLoader(false);
       }
     })();
   }, [loader, page, query]);
 
   const onFormSubmit = ({ query }) => {
+    setLoader(true);
     setQuery(query);
     setPage(1);
     setPhotos([]);
-    setLoader(true);
   };
 
   const loadMore = () => {
-    setPage(prev => prev + 1);
     setLoader(true);
+    setPage(prev => prev + 1);
   };
 
   const isShown = photos.length > 0 && photos.length < total && !loader;
